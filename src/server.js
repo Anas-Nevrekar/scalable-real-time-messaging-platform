@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from "express";
 import http from "http";
+import cors from "cors";
 
 import connectDB from "./config/db.js";
 import initializeWebSocket from "./websocket/websocket.server.js";
@@ -12,8 +13,17 @@ import userRoutes from "./routes/user.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 

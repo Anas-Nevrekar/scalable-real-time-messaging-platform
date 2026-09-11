@@ -1,4 +1,18 @@
-import { createOrGetDirectChat } from "../services/chat.service.js";
+import { createOrGetDirectChat, getChatsForUser } from "../services/chat.service.js";
+
+export const listChats = async (req, res) => {
+  try {
+    const chats = await getChatsForUser(req.userId);
+
+    res.status(200).json({ chats });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to load chats",
+    });
+  }
+};
 
 export const createChat = async (req, res) => {
   try {
