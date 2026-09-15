@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  checkout:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,3 +32,26 @@ jobs:
 
       - name: Push Docker Image
         run: docker push anasnevrekar/real-time-messaging-platform:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull anasnevrekar/real-time-messaging-platform:latest
+
+            docker stop real-time-messaging-platform || true
+            docker rm real-time-messaging-platform || true
+
+            docker run -d \
+              --name real-time-messaging-platform \
+              --env-file /home/ec2-user/.env \
+              -p 3000:3000 \
+              anasnevrekar/real-time-messaging-platform:latest
