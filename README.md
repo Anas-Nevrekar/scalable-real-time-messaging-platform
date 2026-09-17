@@ -191,22 +191,9 @@ connection failures do not immediately result in message loss.
 
 The application uses MongoDB Atlas with four core collections.
 
-### Diagram to paste here
 
-**Paste the digital ER diagram generated from the project's Mermaid ER
-definition.**
-
-Save it as:
-
-``` text
-docs/er-diagram.png
-```
-
-Then use:
-
-``` markdown
 ![Database ER Diagram](docs/er-diagram.png)
-```
+
 
 ## User
 
