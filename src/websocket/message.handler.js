@@ -5,6 +5,10 @@ import {
 } from "../services/message.service.js";
 import { resendPendingMessages } from "../services/inbox.service.js";
 import { connectedUsers } from "./websocket.server.js";
+import { redisSubscriber } from "../config/redis.js";
+
+
+export const subscribedChannels = new Set();
 
 const handleMessage = (socket, data) => {
   try {
@@ -57,6 +61,15 @@ const handleAuthenticate = async (socket, message) => {
 
     // 3. Store active connection
     connectedUsers.set(userId.toString(), socket);
+
+    const userChannel = `user:${userId}`;
+
+    if (!subscribedChannels.has(userChannel)) {
+      await redisSubscriber.subscribe(userChannel);
+      subscribedChannels.add(userChannel);
+
+      console.log(`Subscribed to Redis channel: ${userChannel}`);
+    }
 
     // 4. Tell client authentication succeeded
     socket.send(
@@ -130,5 +143,36 @@ const handleReconnect = (socket) => {
   // Authentication already handles reconnection.
   console.log(`User ${socket.userId} reconnected`);
 };
+
+const setupRedisSubscriber = () => {
+  redisSubscriber.on("message", (channel, data) => {
+    try {
+      const message = JSON.parse(data);
+
+      const userId = channel.replace("user:", "");
+
+      const recipientSocket = connectedUsers.get(userId);
+
+      if (
+        recipientSocket &&
+        recipientSocket.readyState === recipientSocket.OPEN
+      ) {
+        recipientSocket.send(JSON.stringify(message));
+
+        console.log(
+          `Message delivered through Redis to user: ${userId}`
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to process Redis message:",
+        error.message
+      );
+    }
+  });
+};
+
+setupRedisSubscriber();
+
 
 export default handleMessage;

@@ -2,6 +2,7 @@ import Message from "../models/Message.js";
 import Chat from "../models/Chat.js";
 import Inbox from "../models/Inbox.js";
 import { connectedUsers } from "../websocket/websocket.server.js";
+import { redisPublisher } from "../config/redis.js";
 
 export const getMessageHistory = async (chatId, userId) => {
   const chat = await Chat.findOne({
@@ -19,13 +20,11 @@ export const getMessageHistory = async (chatId, userId) => {
 };
 
 export const sendMessage = async (senderId, chatId, content) => {
-
   const chat = await Chat.findById(chatId);
 
   if (!chat) {
     throw new Error("Chat not found");
   }
-
 
   const isParticipant = chat.participants.some(
     (id) => id.toString() === senderId.toString()
@@ -35,12 +34,11 @@ export const sendMessage = async (senderId, chatId, content) => {
     throw new Error("User is not a member of this chat");
   }
 
-
   const recipientIds = chat.participants.filter(
     (id) => id.toString() !== senderId.toString()
   );
 
-
+  // 1. Persist message first
   const message = await Message.create({
     chatId,
     senderId,
@@ -48,7 +46,7 @@ export const sendMessage = async (senderId, chatId, content) => {
     status: "sent",
   });
 
-
+  // 2. Create Inbox entry for every recipient
   for (const recipientId of recipientIds) {
     await Inbox.create({
       userId: recipientId,
@@ -56,6 +54,7 @@ export const sendMessage = async (senderId, chatId, content) => {
     });
   }
 
+  // 3. Try local delivery, otherwise publish to Redis
   for (const recipientId of recipientIds) {
     const recipientSocket = connectedUsers.get(
       recipientId.toString()
@@ -65,6 +64,7 @@ export const sendMessage = async (senderId, chatId, content) => {
       recipientSocket &&
       recipientSocket.readyState === recipientSocket.OPEN
     ) {
+      // Recipient is connected to this Node.js instance
       recipientSocket.send(
         JSON.stringify({
           type: "newMessage",
@@ -74,6 +74,24 @@ export const sendMessage = async (senderId, chatId, content) => {
           content,
         })
       );
+    } else {
+      try {
+        await redisPublisher.publish(
+        `user:${recipientId}`,
+        JSON.stringify({
+          type: "newMessage",
+          messageId: message._id,
+          chatId,
+          senderId,
+          content,
+        })
+      );
+      }catch(e){
+        console.error(
+      `Redis publish failed for user ${recipientId}:`,
+      e.message
+    );
+      }
     }
   }
 

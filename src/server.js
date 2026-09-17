@@ -13,7 +13,7 @@ import userRoutes from "./routes/user.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import healthRoutes from "./routes/health.routes.js";
-
+import "./config/redis.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;

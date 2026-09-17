@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
-import handleMessage from "./message.handler.js";
+import handleMessage, {subscribedChannels} from "./message.handler.js";
+import {redisSubscriber} from "../config/redis.js";
 
 // userId → WebSocket
 const connectedUsers = new Map();
@@ -48,15 +49,26 @@ const initializeWebSocket = (server) => {
     });
 
     // Handle disconnection
-    socket.on("close", () => {
-      if (socket.userId) {
-        connectedUsers.delete(socket.userId.toString());
-      }
+  socket.on("close", async () => {
+  if (socket.userId) {
+    const userId = socket.userId.toString();
 
-      console.log(
-        `WebSocket client disconnected: ${socket.userId || "unauthenticated"}`
-      );
-    });
+    connectedUsers.delete(userId);
+
+    const userChannel = `user:${userId}`;
+
+    if (subscribedChannels.has(userChannel)) {
+      await redisSubscriber.unsubscribe(userChannel);
+      subscribedChannels.delete(userChannel);
+
+      console.log(`Unsubscribed from Redis channel: ${userChannel}`);
+    }
+  }
+
+  console.log(
+    `WebSocket client disconnected: ${socket.userId || "unauthenticated"}`
+  );
+});
 
     // Handle socket errors
     socket.on("error", (error) => {
