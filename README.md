@@ -37,8 +37,6 @@ communication.
 -   [Project Structure](#project-structure)
 -   [Design Decisions](#design-decisions)
 -   [Known Scope / Limitations](#known-scope--limitations)
--   [Future Improvements](#future-improvements)
--   [Interview Walkthrough](#interview-walkthrough)
 -   [License](#license)
 
 ------------------------------------------------------------------------
@@ -108,27 +106,8 @@ scale horizontally.
 
 # Architecture
 
-### Diagram to paste here
+![System Architecture](docs/system-architecture.png)
 
-**Paste the architecture diagram you created showing:**
-
-`Clients → Load Balancer → Multiple Node.js / AWS EC2 instances → MongoDB Atlas`
-
-and
-
-`Node.js instances ↔ Redis Pub/Sub`
-
-Save the image as:
-
-``` text
-docs/architecture.png
-```
-
-Then use:
-
-``` markdown
-![System Architecture](docs/architecture.png)
-```
 
 ### Architecture Explanation
 
